@@ -18,7 +18,7 @@
     button {
         width: 15%;
         height: 40px;
-        font-size: 2vw;
+        font-size: 1.8vw;
         margin-left: 2%;
         margin-right: 2%;
         padding: 0;
@@ -35,4 +35,34 @@
     user-select: text;
     white-space: pre-wrap;
     overflow-wrap: break-word;
+}
+
+.bold {
+    font-weight: bold;
+}
+.italic {
+    font-style: italic;
+}
+.underline {
+    text-decoration: underline;
+}
+.super {
+    vertical-align: super;
+    font-size: smaller;
+}
+.sub {
+    vertical-align: sub;
+    font-size: smaller;
+}
+.link {
+    color: blue;
+}
+.open {
+    color: goldenrod;
+}
+.save {
+    color: crimson;
+}
+.active-btn {
+    background-color: silver;
 }
