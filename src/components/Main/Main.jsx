@@ -1,6 +1,8 @@
 import React from 'react';
 import './Main.scss';
 import ButtonStyle from '../Buttons/ButtonStyle';
+import Modal from '../Modal/Modal';
+import { matches } from 'lodash';
 
 class Main extends React.Component {
     constructor(props) {
@@ -13,9 +15,8 @@ class Main extends React.Component {
                 { active: false, className: 'underline', value: 'U', },
                 { active: false, className: 'super', value: 'sup' },
                 { active: false, className: 'sub', value: 'sub' },
-                { active: false, className: 'link', value: 'link' },
-                { active: false, className: 'open', value: 'Open' },
-                { active: false, className: 'save', value: 'Save' },
+                // { active: false, className: 'open', value: 'Open' },
+                // { active: false, className: 'save', value: 'Save' },
             ],
             classes: ['']
         }
@@ -231,6 +232,54 @@ class Main extends React.Component {
         };
     }
 
+    openModal() {
+        this.elemPosition = this.getCaretPosition();
+        document.getElementById('modalLink').classList.add('show');
+        document.getElementById('nameLink').focus();
+    }
+
+    closeModal() {
+        document.getElementById('modalLink').classList.remove('show');
+    }
+
+    createLink() {
+        const name = document.getElementById('nameLink').value;
+        const link = document.getElementById('link').value;
+        this.closeModal();
+        if (name && link) {
+            const { classes } = this.state;
+
+            const linkElem = document.createElement('a');
+            const reg = new RegExp('^(http|https)://', 'i');
+            if (reg.test(link)) {
+                linkElem.setAttribute('href', link);
+            } else {
+                linkElem.setAttribute('href', 'http://' + link);
+            }
+
+            linkElem.setAttribute('title', link);
+            linkElem.setAttribute('target', '_blank');
+            linkElem.innerHTML = `<span class="${String(`${classes.join(' ')} link`).trim()}">${name}</span>`;
+
+            const content = this.target.innerHTML;
+            this.target.textContent = content.slice(0, this.elemPosition);
+            const contextLastElem = content.slice(this.elemPosition);
+            this.target.after(linkElem);
+            if (contextLastElem.length > 0) {
+                const nextElem = document.createElement('span');
+                nextElem.className = [...this.target.classList].join(' ');
+                nextElem.style.color = this.color;
+                nextElem.textContent = contextLastElem;
+                linkElem.after(nextElem);
+            }
+
+            this.target = linkElem;
+            this.editor.focus();
+            this.position += name.length;
+            this.setCursorPosition(this.editor, this.position);
+        }
+    }
+
     render() {
         return (
             <main className="main">
@@ -244,6 +293,11 @@ class Main extends React.Component {
                             value={button.value}
                         />
                     })}
+                    <ButtonStyle
+                        clickBtn={this.openModal.bind(this)}
+                        className={'link'}
+                        value={'link'}
+                    />
                     <button onClick={this.saveText.bind(this)}>Save</button>
                     <input type="color" id="idColor" onChange={this.getColor.bind(this)}></input>
                     <input type="file" id="file"></input>
@@ -259,6 +313,10 @@ class Main extends React.Component {
                 >
                     <div><span className="" id="firstSpan">  </span></div>
                 </div>
+                <Modal
+                    closeModal={this.closeModal.bind(this)}
+                    createLink={this.createLink.bind(this)}
+                />
             </main>
         )
     }

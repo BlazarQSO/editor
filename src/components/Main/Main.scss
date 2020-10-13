@@ -37,7 +37,11 @@
     white-space: pre-wrap;
     overflow-wrap: break-word;
     padding: 5px;
-    overflow-y: scroll;
+    overflow-y: auto;
+}
+
+.show {
+    display: block !important;
 }
 
 .bold {
@@ -58,7 +62,8 @@
     font-size: smaller;
 }
 .link {
-    color: blue;
+    color: blue !important;
+    cursor: pointer;
 }
 .open {
     color: goldenrod;
