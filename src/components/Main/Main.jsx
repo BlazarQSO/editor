@@ -17,7 +17,7 @@ class Main extends React.Component {
                 { active: false, className: 'open', value: 'Open' },
                 { active: false, className: 'save', value: 'Save' },
             ],
-            classes: ['bold']
+            classes: ['']
         }
         this.target = '';
         this.keyDow = this.keyDow.bind(this);
@@ -26,45 +26,79 @@ class Main extends React.Component {
         this.findOutCurElement = this.findOutCurElement.bind(this);
     }
 
+    componentDidMount() {
+        this.editor = document.querySelector('.editor');
+        const firstSpan = document.getElementById('firstSpan');
+        this.setCursorPosition(firstSpan, 1);
+    }
+
+    initContent() {
+        this.editor.innerHTML = '<div><span className="" id="firstSpan">  </span></div>';
+    }
+
     findOutCurElement() {
         const { focusNode } = document.getSelection();
         if (focusNode && focusNode.data && focusNode.data.length > 0) {
             this.target = focusNode.parentElement;
         }
+    }
 
-        // const selected = document.getSelection().toString().length;
+    getColor() {
+        this.color = document.querySelector('input[type="color"]').value;
+        this.editor.focus();
+        this.setCursorPosition(this.editor, this.position);
+    }
+
+    selectInEditor() {
+        this.findOutCurElement();
+        this.position = this.getCursorPosition(this.editor);
+
+        let { buttons, classes } = this.state;
+        this.color = window.getComputedStyle(this.target, null).getPropertyValue('color');
+        document.querySelector('input[type="color"]').value = this.color;
         if (this.target.tagName === 'SPAN') {
-            this.setState({ classes: [...this.target.classList] });
+            classes = [...this.target.classList];
+            buttons = buttons.map((button) => {
+                button.active = classes.includes(button.className);
+                return button;
+            });
+            this.setState({ buttons, classes });
         }
     }
 
     click(e) {
-        this.editor = document.querySelector('.editor');
+        // this.editor = document.querySelector('.editor');
         // this.target = e.target;
+        // let { buttons, classes } = this.state;
         // if (this.target.tagName === 'SPAN') {
-        //     this.setState({ classes: [...this.target.classList] });
+        //     classes = [...this.target.classList];
+        //     buttons = buttons.map((button) => {
+        //         button.active = classes.includes(button.className);
+        //         return button;
+        //     });
+        //     this.setState({ buttons, classes });
         // }
     }
 
     getCursorPosition(parent) {
-        let selection = document.getSelection()
-        let range = new Range
-        range.setStart(parent, 0)
-        range.setEnd(selection.anchorNode, selection.anchorOffset)
-        return range.toString().length
+        let selection = document.getSelection();
+        let range = new Range;
+        range.setStart(parent, 0);
+        range.setEnd(selection.anchorNode, selection.anchorOffset);
+        return range.toString().length;
     }
 
     setCursorPosition(parent, position) {
-        let child = parent.firstChild
+        let child = parent.firstChild;
         while (position > 0) {
-            let length = child.textContent.length
+            let length = (child && child.textContent && child.textContent.length) || 0;
             if (position > length) {
-                position -= length
-                child = child.nextSibling
-            }
-            else {
-                if (child.nodeType == 3) return document.getSelection().collapse(child, position)
-                child = child.firstChild
+                position -= length;
+                child = (child && child.nextSibling) || null;
+                if (!child) return;
+            } else {
+                if (child.nodeType === 3) return document.getSelection().collapse(child, position);
+                child = child.firstChild;
             }
         }
     }
@@ -80,41 +114,79 @@ class Main extends React.Component {
     }
 
     clickBtn(value) {
-        let { buttons } = this.state;
+        let { buttons, classes } = this.state;
         buttons = buttons.map((btn) => {
             if (btn.value === value) {
                 btn.active = !btn.active;
+                if (btn.active) {
+                    classes.push(btn.className)
+                    if (btn.value === 'sup') {
+                        buttons[4].active = false;
+                        const find = classes.findIndex((cl) => cl === 'sub');
+                        if (find !== -1) classes.splice(find, 1);
+                    } else if (btn.value === 'sub') {
+                        buttons[3].active = false;
+                        const find = classes.findIndex((cl) => cl === 'super');
+                        if (find !== -1) classes.splice(find, 1);
+                    }
+                } else {
+                    const find = classes.findIndex((cl) => cl === btn.className);
+                    if (find !== -1) classes.splice(find, 1);
+                }
             }
             return btn;
         });
         this.editor.focus();
         this.setCursorPosition(this.editor, this.position);
-        this.setState({ buttons });
+        this.setState({ buttons, classes });
     }
 
     keyDow(e) {
+        if (this.editor.innerHTML === '' || this.editor.innerHTML === '<br>') this.initContent();
         const position = this.getCaretPosition();
         const selected = document.getSelection().toString().length;
-        const classes = this.state.classes.sort().join(' ');
+        const { classes } = this.state;
 
-        // const elem = document.querySelector('.editor');
-        const pos2 = this.getCursorPosition(this.editor);
-        console.log(position);
-        console.log(pos2);
 
-        if (selected === 0) {
-            const isNewTextStyle = [...this.target.classList].sort().join() !== classes;
-            const newSpan = `<span class="${classes}">${e.key}</span>`;
+        if (selected === 0 && e.key.length < 2) {
+            let isNewTextStyle = [...this.target.classList].sort().join() !== classes.sort().join();
+            const color = window.getComputedStyle(this.target, null).getPropertyValue('color');;
+            if (color !== this.color) isNewTextStyle = true;
+
+            const newSpan = `<span class="${classes.join(' ')}">${e.key}</span>`;
+            this.position = this.getCursorPosition(this.editor) + 1;
             if (this.target.tagName !== 'SPAN') {
-                // const span = document.createElement('span');
-                // span.className = classes;
-                // span.textContent = e.key;
                 this.target.innerHTML = newSpan;
-                // span.focus();
+                this.editor.focus();
+                this.setCursorPosition(this.editor, this.position);
                 e.preventDefault();
             } else if (isNewTextStyle) {
-                let content = this.target.innerHTML;
-                this.target.innerHTML = content.slice(0, position) + newSpan + content.slice(position);
+                const span = document.createElement('span');
+                span.className = classes.join(' ');
+                span.textContent = e.key;
+                const content = this.target.innerHTML;
+                if (this.color) span.style.color = this.color;
+
+                this.target.textContent = content.slice(0, position);
+                const contextLastSpan = content.slice(position);
+                this.target.after(span);
+                if (contextLastSpan.length > 0) {
+                    const lastSpan = document.createElement('span');
+                    lastSpan.className = [...this.target.classList].join(' ');
+                    lastSpan.textContent = contextLastSpan;
+                    span.after(lastSpan);
+                }
+
+                this.target = span;
+                this.editor.focus();
+                this.setCursorPosition(this.editor, this.position);
+                e.preventDefault();
+            } else {
+                const content = this.target.textContent;
+                this.target.textContent = content.slice(0, position) + e.key + content.slice(position);
+                this.editor.focus();
+                this.setCursorPosition(this.editor, this.position);
+                e.preventDefault();
             }
         }
     }
@@ -132,6 +204,7 @@ class Main extends React.Component {
                             value={button.value}
                         />
                     })}
+                    <input type="color" id="idColor" onChange={this.getColor.bind(this)}></input>
                 </section>
                 <div className="editor"
                     aria-label="rdw-editor"
@@ -139,10 +212,9 @@ class Main extends React.Component {
                     role="textbox"
                     onClick={this.click.bind(this)}
                     onKeyDown={this.keyDow.bind(this)}
-                    onSelect={this.findOutCurElement.bind(this)}
+                    onSelect={this.selectInEditor.bind(this)}
                 >
-                    <div><span className="bold">123456789</span></div>
-                    <div><span className="italic">italic</span></div>
+                    <div><span className="" id="firstSpan">  </span></div>
                 </div>
             </main>
         )
