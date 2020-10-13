@@ -2,12 +2,10 @@ import React from 'react';
 import './Main.scss';
 import ButtonStyle from '../Buttons/ButtonStyle';
 import Modal from '../Modal/Modal';
-import { matches } from 'lodash';
 
 class Main extends React.Component {
     constructor(props) {
         super(props);
-        this.position = 0;
         this.state = {
             buttons: [
                 { active: false, className: 'bold', value: 'B', },
@@ -15,12 +13,10 @@ class Main extends React.Component {
                 { active: false, className: 'underline', value: 'U', },
                 { active: false, className: 'super', value: 'sup' },
                 { active: false, className: 'sub', value: 'sub' },
-                // { active: false, className: 'open', value: 'Open' },
-                // { active: false, className: 'save', value: 'Save' },
             ],
             classes: ['']
         }
-        this.target = '';
+        this.font = 'Roboto';
         this.keyDow = this.keyDow.bind(this);
         this.getCursorPosition = this.getCursorPosition.bind(this);
         this.setCursorPosition = this.setCursorPosition.bind(this);
@@ -54,12 +50,24 @@ class Main extends React.Component {
         this.color = window.getComputedStyle(this.target, null).getPropertyValue('color');
         if (this.color) {
             const rgbToHex = (r, g, b) => '#' + [r, g, b]
-                .map(x => x.toString(16).padStart(2, '0')).join('')
+                .map(x => x.toString(16).padStart(2, '0')).join('');
 
             const hex = rgbToHex(...this.color.slice(4, this.color.length - 1)
                 .split(', ').map((n) => +n));
 
             document.querySelector('#idColor').value = hex;
+        }
+    }
+
+    setFontFamily() {
+        let font = window.getComputedStyle(this.target, null).getPropertyValue('font-family');
+        if (font) {
+            font = font.replace(/"/g, '');
+            this.font = (this.changeFamily) ? this.font : font;
+            this.changeFamily = false;
+
+            Array.from(document.getElementById('fontFamily'))
+                .map((option) => (option.value === font) ? option.selected = true : option);
         }
     }
 
@@ -70,6 +78,7 @@ class Main extends React.Component {
         let { buttons, classes } = this.state;
 
         this.setColor();
+        this.setFontFamily();
 
         if (this.target.tagName === 'SPAN') {
             classes = [...this.target.classList];
@@ -79,20 +88,6 @@ class Main extends React.Component {
             });
             this.setState({ buttons, classes });
         }
-    }
-
-    click(e) {
-        // this.editor = document.querySelector('.editor');
-        // this.target = e.target;
-        // let { buttons, classes } = this.state;
-        // if (this.target.tagName === 'SPAN') {
-        //     classes = [...this.target.classList];
-        //     buttons = buttons.map((button) => {
-        //         button.active = classes.includes(button.className);
-        //         return button;
-        //     });
-        //     this.setState({ buttons, classes });
-        // }
     }
 
     getCursorPosition(parent) {
@@ -165,8 +160,11 @@ class Main extends React.Component {
 
         if (selected === 0 && e.key.length < 2) {
             let isNewTextStyle = [...this.target.classList].sort().join() !== classes.sort().join();
-            const color = window.getComputedStyle(this.target, null).getPropertyValue('color');;
+            const color = window.getComputedStyle(this.target, null).getPropertyValue('color');
             if (color !== this.color) isNewTextStyle = true;
+            let font = window.getComputedStyle(this.target, null).getPropertyValue('font-family');
+            font = font.replace(/"/g, '');
+            if (font !== this.font) isNewTextStyle = true;
 
             const newSpan = `<span class="${classes.join(' ')}">${e.key}</span>`;
             this.position = this.getCursorPosition(this.editor) + 1;
@@ -181,6 +179,7 @@ class Main extends React.Component {
                 span.textContent = e.key;
                 const content = this.target.innerHTML;
                 if (this.color) span.style.color = this.color;
+                if (this.font) span.style.fontFamily = this.font;
 
                 this.target.textContent = content.slice(0, position);
                 const contextLastSpan = content.slice(position);
@@ -269,6 +268,7 @@ class Main extends React.Component {
                 const nextElem = document.createElement('span');
                 nextElem.className = [...this.target.classList].join(' ');
                 nextElem.style.color = this.color;
+                nextElem.style.font = this.font;
                 nextElem.textContent = contextLastElem;
                 linkElem.after(nextElem);
             }
@@ -278,6 +278,23 @@ class Main extends React.Component {
             this.position += name.length;
             this.setCursorPosition(this.editor, this.position);
         }
+    }
+
+    savePDF() {
+        const pdf = new jsPDF('p', 'pt', 'letter');
+        pdf.canvas.height = 72 * 11;
+        pdf.canvas.width = 72 * 8.5;
+
+        pdf.fromHTML(this.editor);
+
+        pdf.save('test.pdf');
+    }
+
+    changeFontFamily(e) {
+        this.font = e.target.value;
+        this.changeFamily = true;
+        this.editor.focus();
+        this.setCursorPosition(this.editor, this.position);
     }
 
     render() {
@@ -299,9 +316,15 @@ class Main extends React.Component {
                         value={'link'}
                     />
                     <button onClick={this.saveText.bind(this)}>Save</button>
+                    <button onClick={this.savePDF.bind(this)}>PDF</button>
                     <input type="color" id="idColor" onChange={this.getColor.bind(this)}></input>
                     <input type="file" id="file"></input>
-                    <button onClick={this.readFile.bind(this)}>Read</button>
+                    <button onClick={this.readFile.bind(this)}>Open</button>
+                    <select onChange={this.changeFontFamily.bind(this)} id="fontFamily">
+                        <option value="Roboto" selected>Roboto</option>
+                        <option value="Open Sans">Open Sans</option>
+                        <option value="Lato">Lato</option>
+                    </select>
                 </section>
                 <div className="editor"
                     aria-label="rdw-editor"

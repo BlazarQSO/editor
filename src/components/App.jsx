@@ -1,4 +1,5 @@
 import React from 'react';
+import '../assets/fonts/font-faces.scss';
 import './App.scss';
 import Header from './Header/Header'
 import Aside from './Aside/Aside'
