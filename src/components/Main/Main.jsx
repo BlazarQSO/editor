@@ -30,7 +30,6 @@ class Main extends React.Component {
         this.editor = document.querySelector('.editor');
         const firstSpan = document.getElementById('firstSpan');
         this.setCursorPosition(firstSpan, 1);
-        // document.querySelector('#idColor').value = '#0000ff';
     }
 
     initContent() {
@@ -52,14 +51,15 @@ class Main extends React.Component {
 
     setColor() {
         this.color = window.getComputedStyle(this.target, null).getPropertyValue('color');
+        if (this.color) {
+            const rgbToHex = (r, g, b) => '#' + [r, g, b]
+                .map(x => x.toString(16).padStart(2, '0')).join('')
 
-        const rgbToHex = (r, g, b) => '#' + [r, g, b]
-            .map(x => x.toString(16).padStart(2, '0')).join('')
+            const hex = rgbToHex(...this.color.slice(4, this.color.length - 1)
+                .split(', ').map((n) => +n));
 
-        const hex = rgbToHex(...this.color.slice(4, this.color.length - 1)
-            .split(', ').map((n) => +n));
-
-        document.querySelector('#idColor').value = hex;
+            document.querySelector('#idColor').value = hex;
+        }
     }
 
     selectInEditor() {
@@ -205,6 +205,32 @@ class Main extends React.Component {
         }
     }
 
+    saveText() {
+        const text = JSON.stringify(this.editor.innerHTML);
+        const autoLink = document.createElement('a');
+        autoLink.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        autoLink.setAttribute('download', 'editor');
+        autoLink.style.display = 'none';
+        document.body.appendChild(autoLink);
+        autoLink.click();
+        document.body.removeChild(autoLink);
+    }
+
+    readFile() {
+        const input = document.getElementById('file');
+
+        let file = input.files[0];
+
+        let reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = () => {
+            this.editor.innerHTML = JSON.parse(reader.result);
+        };
+        reader.onerror = () => {
+            console.log(reader.error);
+        };
+    }
+
     render() {
         return (
             <main className="main">
@@ -218,7 +244,10 @@ class Main extends React.Component {
                             value={button.value}
                         />
                     })}
+                    <button onClick={this.saveText.bind(this)}>Save</button>
                     <input type="color" id="idColor" onChange={this.getColor.bind(this)}></input>
+                    <input type="file" id="file"></input>
+                    <button onClick={this.readFile.bind(this)}>Read</button>
                 </section>
                 <div className="editor"
                     aria-label="rdw-editor"
