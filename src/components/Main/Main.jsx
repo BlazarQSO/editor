@@ -30,6 +30,7 @@ class Main extends React.Component {
         this.editor = document.querySelector('.editor');
         const firstSpan = document.getElementById('firstSpan');
         this.setCursorPosition(firstSpan, 1);
+        // document.querySelector('#idColor').value = '#0000ff';
     }
 
     initContent() {
@@ -44,9 +45,21 @@ class Main extends React.Component {
     }
 
     getColor() {
-        this.color = document.querySelector('input[type="color"]').value;
+        this.color = document.querySelector('#idColor').value;
         this.editor.focus();
         this.setCursorPosition(this.editor, this.position);
+    }
+
+    setColor() {
+        this.color = window.getComputedStyle(this.target, null).getPropertyValue('color');
+
+        const rgbToHex = (r, g, b) => '#' + [r, g, b]
+            .map(x => x.toString(16).padStart(2, '0')).join('')
+
+        const hex = rgbToHex(...this.color.slice(4, this.color.length - 1)
+            .split(', ').map((n) => +n));
+
+        document.querySelector('#idColor').value = hex;
     }
 
     selectInEditor() {
@@ -54,8 +67,9 @@ class Main extends React.Component {
         this.position = this.getCursorPosition(this.editor);
 
         let { buttons, classes } = this.state;
-        this.color = window.getComputedStyle(this.target, null).getPropertyValue('color');
-        document.querySelector('input[type="color"]').value = this.color;
+
+        this.setColor();
+
         if (this.target.tagName === 'SPAN') {
             classes = [...this.target.classList];
             buttons = buttons.map((button) => {
