@@ -48,10 +48,9 @@ class Main extends React.Component {
         const selectText = document.getSelection().toString();
         if (selectText.length > 0) {
             this.addStyleToSelectedText({ isChangedColor: true });
-        } else {
-            this.editor.focus();
-            this.setCursorPosition(this.editor, this.position);
         }
+        this.editor.focus();
+        this.setCursorPosition(this.editor, this.position);
     }
 
     setColor() {
@@ -231,13 +230,7 @@ class Main extends React.Component {
         });
 
         innerNodes.forEach((node) => {
-            if (nameClass && isAddingClass) {
-                node.classList.add(nameClass);
-                if (nameClass === 'sub') node.classList.remove('super');
-                if (nameClass === 'super') node.classList.remove('sub');
-            } else if (nameClass) {
-                node.classList.remove(nameClass);
-            }
+            this.checkClassName({ span: node, nameClass, isAddingClass });
             if (isChangedColor) node.style.color = this.color;
             if (isChangedFont) node.style.fontFamily = this.font;
         });
@@ -338,10 +331,9 @@ class Main extends React.Component {
         if (selectText.length > 0) {
             const button = buttons.find((button) => button.value === value);
             this.addStyleToSelectedText({ nameClass: button.className, isAddingClass: button.active });
-        } else {
-            this.editor.focus();
-            this.setCursorPosition(this.editor, this.position);
         }
+        this.editor.focus();
+        this.setCursorPosition(this.editor, this.position);
         this.setState({ buttons, classes });
     }
 
@@ -521,10 +513,9 @@ class Main extends React.Component {
         const selectText = document.getSelection().toString();
         if (selectText.length > 0) {
             this.addStyleToSelectedText({ isChangedFont: true });
-        } else {
-            this.editor.focus();
-            this.setCursorPosition(this.editor, this.position);
         }
+        this.editor.focus();
+        this.setCursorPosition(this.editor, this.position);
     }
 
     render() {
