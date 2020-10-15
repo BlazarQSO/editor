@@ -30,7 +30,12 @@ class Main extends React.Component {
     }
 
     initContent() {
-        this.editor.innerHTML = '<div><span className="" id="firstSpan">  </span></div>';
+        // const div = document.createElement('div');
+        // const span = document.createElement('span');
+        // span.id = 'firstSpan';
+        // div.append(span);
+        // this.editor.prepend(div);
+        this.editor.innerHTML = '<div><span id="firstSpan">  </span></div>';
     }
 
     findOutCurElement() {
@@ -42,8 +47,13 @@ class Main extends React.Component {
 
     getColor() {
         this.color = document.querySelector('#idColor').value;
-        this.editor.focus();
-        this.setCursorPosition(this.editor, this.position);
+        const selectText = document.getSelection().toString();
+        if (selectText.length > 0) {
+            this.addStyleToSelectedText({ isChangedColor: true });
+        } else {
+            this.editor.focus();
+            this.setCursorPosition(this.editor, this.position);
+        }
     }
 
     setColor() {
@@ -67,7 +77,7 @@ class Main extends React.Component {
             this.changeFamily = false;
 
             Array.from(document.getElementById('fontFamily'))
-                .map((option) => (option.value === font) ? option.selected = true : option);
+                .map((option) => (option.value === this.font) ? option.selected = true : option);
         }
     }
 
@@ -123,8 +133,159 @@ class Main extends React.Component {
         return caretOffset;
     }
 
+    addStyleToSelectedText({ nameClass, isAddingClass, isChangedColor, isChangedFont }) {
+        let { anchorNode, anchorOffset, focusNode, focusOffset } = document.getSelection();
+
+        if (anchorNode === focusNode) {
+            if (anchorOffset > focusOffset) {
+                const temp = anchorOffset;
+                anchorOffset = focusOffset;
+                focusOffset = temp;
+            }
+
+            const anchorContent = anchorNode.textContent;
+            if (anchorOffset === 0 && focusOffset === anchorContent.length) {
+                if (nameClass && isAddingClass) {
+                    anchorNode.parentElement.classList.add(nameClass);
+                    if (nameClass === 'sub') anchorNode.parentElement.classList.remove('super');
+                    if (nameClass === 'super') anchorNode.parentElement.classList.remove('sub');
+                } else if (nameClass) {
+                    anchorNode.parentElement.classList.remove(nameClass);
+                }
+                if (this.color) anchorNode.parentElement.style.color = this.color;
+                if (this.font) anchorNode.parentElement.style.fontFamily = this.font;
+                return;
+            }
+
+            const span = document.createElement('span');
+            span.className = anchorNode.parentElement.className;
+            if (nameClass && isAddingClass) {
+                span.classList.add(nameClass);
+                if (nameClass === 'sub') span.classList.remove('super');
+                if (nameClass === 'super') span.classList.remove('sub');
+            } else if (nameClass) {
+                span.classList.remove(nameClass);
+            }
+
+            if (this.color) span.style.color = this.color;
+            if (this.font) span.style.fontFamily = this.font;
+            anchorNode.textContent = anchorContent.slice(0, anchorOffset);
+            span.textContent = anchorContent.slice(anchorOffset, focusOffset);
+
+            anchorNode.parentElement.after(span);
+
+            const lastSpan = document.createElement('span');
+            if (anchorContent.length > focusOffset) {
+                lastSpan.className = anchorNode.parentElement.className;
+                const color = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('color');
+                const font = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('font-family');
+                if (color) lastSpan.style.color = color;
+                if (font) lastSpan.style.fontFamily = font;
+                lastSpan.textContent = anchorContent.slice(focusOffset);
+                span.after(lastSpan);
+            }
+
+            this.editor.childNodes.forEach((div) => {
+                div.childNodes.forEach((span) => {
+                    if (span.textContent === '') span.remove();
+                })
+            })
+        } else {
+            let reverse = null;
+            this.editor.childNodes.forEach((div) => {
+                div.childNodes.forEach((span) => {
+                    if (span === focusNode.parentElement && reverse === null) reverse = true;
+                    if (span === anchorNode.parentElement && reverse === null) reverse = false;
+                });
+            });
+            if (reverse) {
+                let temp = focusNode;
+                focusNode = anchorNode;
+                anchorNode = temp;
+                temp = focusOffset;
+                focusOffset = anchorOffset;
+                anchorOffset = temp;
+            }
+
+            const innerNodes = [];
+            let push = false;
+            this.editor.childNodes.forEach((div) => {
+                div.childNodes.forEach((span) => {
+                    if (span === focusNode.parentNode) push = false;
+                    if (push) innerNodes.push(span);
+                    if (span === anchorNode.parentNode) push = true;
+                });
+            });
+
+            innerNodes.forEach((node) => {
+                if (nameClass && isAddingClass) {
+                    node.classList.add(nameClass);
+                    if (nameClass === 'sub') node.classList.remove('super');
+                    if (nameClass === 'super') node.classList.remove('sub');
+                } else if (nameClass) {
+                    node.classList.remove(nameClass);
+                }
+                if (isChangedColor) node.style.color = this.color;
+                if (isChangedFont) node.style.fontFamily = this.font;
+            })
+
+            const anchorContent = anchorNode.textContent;
+            const span = document.createElement('span');
+            span.className = anchorNode.parentElement.className;
+            if (nameClass && isAddingClass) {
+                span.classList.add(nameClass);
+                if (nameClass === 'sub') span.classList.remove('super');
+                if (nameClass === 'super') span.classList.remove('sub');
+            } else if (nameClass) {
+                span.classList.remove(nameClass);
+            }
+
+            if (isChangedColor) {
+                if (this.color) span.style.color = this.color;
+            } else {
+                const color = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('color');
+                if (color) span.style.color = color;
+            }
+            span.style.fontFamily = (isChangedFont) ?
+                this.font : window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('font-family');
+
+            anchorNode.textContent = anchorContent.slice(0, anchorOffset);
+            span.textContent = anchorContent.slice(anchorOffset);
+
+            anchorNode.parentElement.after(span);
+
+
+
+            const focusContent = focusNode.textContent;
+            const spanPrevEnd = document.createElement('span');
+            spanPrevEnd.className = focusNode.parentElement.className;
+            if (nameClass && isAddingClass) {
+                spanPrevEnd.classList.add(nameClass);
+                if (nameClass === 'sub') spanPrevEnd.classList.remove('super');
+                if (nameClass === 'super') spanPrevEnd.classList.remove('sub');
+            } else if (nameClass) {
+                spanPrevEnd.classList.remove(nameClass);
+            }
+
+            if (isChangedColor) {
+                if (this.color) spanPrevEnd.style.color = this.color;
+            } else {
+                const color = window.getComputedStyle(focusNode.parentElement, null).getPropertyValue('color');
+                if (color) spanPrevEnd.style.color = color;
+            }
+            spanPrevEnd.style.fontFamily = (isChangedFont) ?
+                this.font : window.getComputedStyle(focusNode.parentElement, null).getPropertyValue('font-family');
+
+            focusNode.textContent = focusContent.slice(focusOffset);
+            spanPrevEnd.textContent = focusContent.slice(0, focusOffset);
+
+            focusNode.parentElement.before(spanPrevEnd);
+        }
+    }
+
     clickBtn(value) {
         let { buttons, classes } = this.state;
+
         buttons = buttons.map((btn) => {
             if (btn.value === value) {
                 btn.active = !btn.active;
@@ -146,16 +307,43 @@ class Main extends React.Component {
             }
             return btn;
         });
-        this.editor.focus();
-        this.setCursorPosition(this.editor, this.position);
+
+        const selectText = document.getSelection().toString();
+        if (selectText.length > 0) {
+            const button = buttons.find((button) => button.value === value);
+            this.addStyleToSelectedText({ nameClass: button.className, isAddingClass: button.active });
+        } else {
+            this.editor.focus();
+            this.setCursorPosition(this.editor, this.position);
+        }
         this.setState({ buttons, classes });
     }
 
     keyDow(e) {
         if (this.editor.innerHTML === '' || this.editor.innerHTML === '<br>') this.initContent();
         const position = this.getCaretPosition();
-        const selected = document.getSelection().toString().length;
+        const selected = document.getSelection().toString().length; // это лишнее - оптимизировать условие
         const { classes } = this.state;
+
+        console.log(this.position);
+        const { focusNode, focusOffset } = document.getSelection();
+        if (e.key === 'Enter' && focusOffset === focusNode.textContent.length) {
+            const div = document.createElement('div');
+            const span = document.createElement('span');
+            span.innerHTML = ' ';
+            div.append(span);
+            const curDiv = Array.from(this.editor.childNodes).find((div) => div === this.target.parentNode);
+            if (curDiv) curDiv.after(div);
+            span.className = curDiv.childNodes[curDiv.childNodes.length - 1].className;
+            span.style.color = this.color;
+            span.style.fontFamily = this.font;
+            this.setCursorPosition(span, 1);
+            e.preventDefault();
+        }
+        console.log(e.key);
+        if (e.key === 'Backspace' || e.key === 'ArrowLeft') {
+            if (this.position === 1) e.preventDefault();
+        }
 
 
         if (selected === 0 && e.key.length < 2) {
@@ -169,10 +357,10 @@ class Main extends React.Component {
             const newSpan = `<span class="${classes.join(' ')}">${e.key}</span>`;
             this.position = this.getCursorPosition(this.editor) + 1;
             if (this.target.tagName !== 'SPAN') {
-                this.target.innerHTML = newSpan;
-                this.editor.focus();
-                this.setCursorPosition(this.editor, this.position);
-                e.preventDefault();
+                // this.target.innerHTML = newSpan;
+                // this.editor.focus();
+                // this.setCursorPosition(this.editor, this.position);
+                // e.preventDefault();
             } else if (isNewTextStyle) {
                 const span = document.createElement('span');
                 span.className = classes.join(' ');
@@ -287,50 +475,61 @@ class Main extends React.Component {
 
         pdf.fromHTML(this.editor);
 
-        pdf.save('test.pdf');
+        pdf.save('editorText.pdf');
     }
 
     changeFontFamily(e) {
         this.font = e.target.value;
         this.changeFamily = true;
-        this.editor.focus();
-        this.setCursorPosition(this.editor, this.position);
+        const selectText = document.getSelection().toString();
+        if (selectText.length > 0) {
+            this.addStyleToSelectedText({ isChangedFont: true });
+        } else {
+            this.editor.focus();
+            this.setCursorPosition(this.editor, this.position);
+        }
     }
 
     render() {
         return (
             <main className="main">
                 <section className="control">
-                    {this.state.buttons.map((button, index) => {
-                        return <ButtonStyle
-                            key={index}
-                            clickBtn={this.clickBtn.bind(this)}
-                            active={button.active}
-                            className={button.className}
-                            value={button.value}
+                    <div className="control__block">
+                        {this.state.buttons.map((button, index) => {
+                            return <ButtonStyle
+                                key={index}
+                                clickBtn={this.clickBtn.bind(this)}
+                                active={button.active}
+                                className={button.className}
+                                value={button.value}
+                            />
+                        })}
+                    </div>
+                    <div className="control__block">
+                        <ButtonStyle
+                            clickBtn={this.openModal.bind(this)}
+                            className={'link'}
+                            value={'link'}
                         />
-                    })}
-                    <ButtonStyle
-                        clickBtn={this.openModal.bind(this)}
-                        className={'link'}
-                        value={'link'}
-                    />
-                    <button onClick={this.saveText.bind(this)}>Save</button>
-                    <button onClick={this.savePDF.bind(this)}>PDF</button>
-                    <input type="color" id="idColor" onChange={this.getColor.bind(this)}></input>
-                    <input type="file" id="file"></input>
-                    <button onClick={this.readFile.bind(this)}>Open</button>
-                    <select onChange={this.changeFontFamily.bind(this)} id="fontFamily">
-                        <option value="Roboto" selected>Roboto</option>
-                        <option value="Open Sans">Open Sans</option>
-                        <option value="Lato">Lato</option>
-                    </select>
+                        <input type="color" id="idColor" onChange={this.getColor.bind(this)} className="color"></input>
+                        <select onChange={this.changeFontFamily.bind(this)} id="fontFamily" className="select">
+                            <option value="Roboto" selected>Roboto</option>
+                            <option value="Open Sans">Open Sans</option>
+                            <option value="Lato">Lato</option>
+                        </select>
+                    </div>
+                    <div className="control__block">
+                        <div class="open">
+                            <input type="file" id="file" className="open__input" />
+                            <label htmlFor="file"><span>Choose a file…</span></label>
+                            <button onClick={this.readFile.bind(this)}>Open</button>
+                        </div>
+                        <button onClick={this.saveText.bind(this)}>Save</button>
+                        <button onClick={this.savePDF.bind(this)}>PDF</button>
+                    </div>
                 </section>
                 <div className="editor"
-                    aria-label="rdw-editor"
                     contentEditable="true"
-                    role="textbox"
-                    onClick={this.click.bind(this)}
                     onKeyDown={this.keyDow.bind(this)}
                     onSelect={this.selectInEditor.bind(this)}
                 >
@@ -339,6 +538,7 @@ class Main extends React.Component {
                 <Modal
                     closeModal={this.closeModal.bind(this)}
                     createLink={this.createLink.bind(this)}
+                    link={this.link}
                 />
             </main>
         )

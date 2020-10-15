@@ -4,10 +4,11 @@
     height: 120px;
     justify-content: center;
     align-items: center;
+    box-shadow: -3px -3px 5px black;
 
     &__title {
         font-size: 22px;
-        color: blue;
+        color: black;
     }
 
     &__img {
@@ -23,8 +24,8 @@
     }
 
     &__link {
-        color: blue;
-        font-size: 22px;
+        color: black;
+        font-size: 2vw;
         cursor: pointer;
     }
 }

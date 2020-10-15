@@ -8,7 +8,7 @@ const Modal = (props) => {
                 <span onClick={props.closeModal} className="modal__close">&times;</span>
 
                 <label htmlFor="nameLink">Enter the link text</label>
-                <input type="text" id="nameLink" />
+                <input type="text" id="nameLink"/>
 
                 <label htmlFor="link">Enter the link</label>
                 <input type="text" id="link" />

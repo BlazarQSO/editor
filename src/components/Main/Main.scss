@@ -6,10 +6,11 @@
 }
 
 .control {
+    min-width: 300px;
     width: 50%;
     display: flex;
     justify-content: space-evenly;
-    flex-wrap: wrap;
+    flex-direction: column;
     min-height: 100px;
     align-items: center;
     border: 2px solid brown;
@@ -17,7 +18,7 @@
     padding: 5px;
 
     button {
-        width: 15%;
+        width: 25%;
         height: 40px;
         font-size: 1.8vw;
         margin-left: 2%;
@@ -25,9 +26,24 @@
         padding: 0;
         box-shadow: 2px 2px 3px black;
     }
+    &__block {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px;
+    }
+    input[type="color"] {
+        width: 25%;
+        height: 40px;
+        margin-left: 2%;
+        margin-right: 2%;
+    }
 }
 
 .editor {
+    font-size: 18px;
+    min-width: 300px;
     width: 50%;
     border: 2px solid rosybrown;
     height: 300px;
@@ -38,6 +54,7 @@
     overflow-wrap: break-word;
     padding: 5px;
     overflow-y: auto;
+    margin-bottom: 15px;
 }
 
 .show {
@@ -65,12 +82,52 @@
     color: blue !important;
     cursor: pointer;
 }
-.open {
-    color: goldenrod;
-}
+
 .save {
     color: crimson;
 }
 .active-btn {
     background-color: silver;
+}
+.open {
+    margin-left: 2%;
+    margin-right: 2%;
+    background-color: silver;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 190px;
+    padding: 6px;
+
+    &__input {
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+    }
+
+    &__input + label {
+        min-width: 60%;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        display: inline-block;
+        overflow: hidden;
+    }
+
+    button {
+        width: 75px;
+    }
+}
+
+.select {
+    width: 25%;
+    height: 40px;
+    margin-left: 2%;
+    margin-right: 2%;
+    font-size: 13px;
+    font-size: 1.2vw;
 }
