@@ -1,6 +1,8 @@
 import React from 'react';
 import './Main.scss';
 import ButtonStyle from '../Buttons/ButtonStyle';
+import ControlBlock from '../Control/ControlBlock';
+import SaveBlock from '../Control/SaveBlock';
 import Modal from '../Modal/Modal';
 
 class Main extends React.Component {
@@ -429,37 +431,48 @@ class Main extends React.Component {
         document.getElementById('modalLink').classList.remove('show');
     }
 
+
+    formingLinkElement({ name, link }) {
+        const { classes } = this.state;
+
+        const linkElem = document.createElement('a');
+        const reg = new RegExp('^(http|https)://', 'i');
+        if (reg.test(link)) {
+            linkElem.setAttribute('href', link);
+        } else {
+            linkElem.setAttribute('href', 'http://' + link);
+        }
+
+        linkElem.setAttribute('title', link);
+        linkElem.setAttribute('target', '_blank');
+        linkElem.innerHTML = `<span class="${String(`${classes.join(' ')} link`).trim()}">${name}</span>`;
+        return linkElem;
+    }
+
+    getLinkStyles({ contextLastElem, linkElem }) {
+        if (contextLastElem.length > 0) {
+            const nextElem = document.createElement('span');
+            nextElem.className = [...this.target.classList].join(' ');
+            nextElem.style.color = this.color;
+            nextElem.style.font = this.font;
+            nextElem.textContent = contextLastElem;
+            linkElem.after(nextElem);
+        }
+    }
+
     createLink() {
         const name = document.getElementById('nameLink').value;
         const link = document.getElementById('link').value;
         this.closeModal();
         if (name && link) {
-            const { classes } = this.state;
-
-            const linkElem = document.createElement('a');
-            const reg = new RegExp('^(http|https)://', 'i');
-            if (reg.test(link)) {
-                linkElem.setAttribute('href', link);
-            } else {
-                linkElem.setAttribute('href', 'http://' + link);
-            }
-
-            linkElem.setAttribute('title', link);
-            linkElem.setAttribute('target', '_blank');
-            linkElem.innerHTML = `<span class="${String(`${classes.join(' ')} link`).trim()}">${name}</span>`;
+            const linkElem = this.formingLinkElement({name, link});
 
             const content = this.target.innerHTML;
             this.target.textContent = content.slice(0, this.elemPosition);
             const contextLastElem = content.slice(this.elemPosition);
             this.target.after(linkElem);
-            if (contextLastElem.length > 0) {
-                const nextElem = document.createElement('span');
-                nextElem.className = [...this.target.classList].join(' ');
-                nextElem.style.color = this.color;
-                nextElem.style.font = this.font;
-                nextElem.textContent = contextLastElem;
-                linkElem.after(nextElem);
-            }
+
+            this.getLinkStyles({ contextLastElem, linkElem });
 
             this.target = linkElem;
             this.editor.focus();
@@ -506,26 +519,18 @@ class Main extends React.Component {
                         })}
                     </div>
                     <div className="control__block">
-                        <ButtonStyle
+                        <ControlBlock
+                            getColor={this.getColor.bind(this)}
+                            changeFontFamily={this.changeFontFamily.bind(this)}
                             clickBtn={this.openModal.bind(this)}
-                            className={'link'}
-                            value={'link'}
                         />
-                        <input type="color" id="idColor" onChange={this.getColor.bind(this)} className="color"></input>
-                        <select onChange={this.changeFontFamily.bind(this)} id="fontFamily" className="select">
-                            <option value="Roboto" selected>Roboto</option>
-                            <option value="Open Sans">Open Sans</option>
-                            <option value="Lato">Lato</option>
-                        </select>
                     </div>
                     <div className="control__block">
-                        <div class="open">
-                            <input type="file" id="file" className="open__input" />
-                            <label htmlFor="file"><span>Choose a file…</span></label>
-                            <button onClick={this.readFile.bind(this)}>Open</button>
-                        </div>
-                        <button onClick={this.saveText.bind(this)}>Save</button>
-                        <button onClick={this.savePDF.bind(this)}>PDF</button>
+                        <SaveBlock
+                            saveText={this.saveText.bind(this)}
+                            savePDF={this.savePDF.bind(this)}
+                            readFile ={this.readFile.bind(this)}
+                        />
                     </div>
                 </section>
                 <div className="editor"
