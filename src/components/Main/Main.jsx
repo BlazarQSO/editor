@@ -32,11 +32,6 @@ class Main extends React.Component {
     }
 
     initContent() {
-        // const div = document.createElement('div');
-        // const span = document.createElement('span');
-        // span.id = 'firstSpan';
-        // div.append(span);
-        // this.editor.prepend(div);
         this.editor.innerHTML = '<div><span id="firstSpan">  </span></div>';
     }
 
@@ -135,63 +130,80 @@ class Main extends React.Component {
         return caretOffset;
     }
 
+    checkSelectedSpan({
+        nameClass, isAddingClass, anchorNode, anchorContent, anchorOffset, focusOffset
+    }) {
+        if (anchorOffset === 0 && focusOffset === anchorContent.length) {
+            if (nameClass && isAddingClass) {
+                anchorNode.parentElement.classList.add(nameClass);
+                if (nameClass === 'sub') anchorNode.parentElement.classList.remove('super');
+                if (nameClass === 'super') anchorNode.parentElement.classList.remove('sub');
+            } else if (nameClass) {
+                anchorNode.parentElement.classList.remove(nameClass);
+            }
+            if (this.color) anchorNode.parentElement.style.color = this.color;
+            if (this.font) anchorNode.parentElement.style.fontFamily = this.font;
+            return true;
+        }
+        return false;
+    }
+
+    checkClassName({span, nameClass, isAddingClass}) {
+        if (nameClass && isAddingClass) {
+            span.classList.add(nameClass);
+            if (nameClass === 'sub') span.classList.remove('super');
+            if (nameClass === 'super') span.classList.remove('sub');
+        } else if (nameClass) {
+            span.classList.remove(nameClass);
+        }
+    }
+
+    selectedInsideSpan({ anchorNode, anchorOffset, focusOffset, nameClass, isAddingClass}) {
+        if (anchorOffset > focusOffset) {
+            const temp = anchorOffset;
+            anchorOffset = focusOffset;
+            focusOffset = temp;
+        }
+
+        const anchorContent = anchorNode.textContent;
+        if (this.checkSelectedSpan({
+            anchorNode, anchorContent, anchorOffset, focusOffset, isAddingClass, nameClass
+        })) return;
+
+        const content = anchorContent.slice(anchorOffset, focusOffset);
+        const span = createElement({
+            tag: 'span', className: anchorNode.parentElement.className, color: this.color, font: this.font, content
+        });
+
+        this.checkClassName({ span, nameClass, isAddingClass });
+        anchorNode.textContent = anchorContent.slice(0, anchorOffset);
+
+        anchorNode.parentElement.after(span);
+
+        if (anchorContent.length > focusOffset) {
+            const color = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('color');
+            const font = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('font-family');
+            const content = anchorContent.slice(focusOffset);
+            const lastSpan = createElement({
+                tag: 'span', className: anchorNode.parentElement.className, color, font, content
+            })
+            span.after(lastSpan);
+        }
+
+        this.editor.childNodes.forEach((div) => {
+            div.childNodes.forEach((span) => {
+                if (span.textContent === '') span.remove();
+            })
+        });
+    }
+
     addStyleToSelectedText({ nameClass, isAddingClass, isChangedColor, isChangedFont }) {
         let { anchorNode, anchorOffset, focusNode, focusOffset } = document.getSelection();
 
         if (anchorNode === focusNode) {
-            if (anchorOffset > focusOffset) {
-                const temp = anchorOffset;
-                anchorOffset = focusOffset;
-                focusOffset = temp;
-            }
-
-            const anchorContent = anchorNode.textContent;
-            if (anchorOffset === 0 && focusOffset === anchorContent.length) {
-                if (nameClass && isAddingClass) {
-                    anchorNode.parentElement.classList.add(nameClass);
-                    if (nameClass === 'sub') anchorNode.parentElement.classList.remove('super');
-                    if (nameClass === 'super') anchorNode.parentElement.classList.remove('sub');
-                } else if (nameClass) {
-                    anchorNode.parentElement.classList.remove(nameClass);
-                }
-                if (this.color) anchorNode.parentElement.style.color = this.color;
-                if (this.font) anchorNode.parentElement.style.fontFamily = this.font;
-                return;
-            }
-
-            const span = document.createElement('span');
-            span.className = anchorNode.parentElement.className;
-            if (nameClass && isAddingClass) {
-                span.classList.add(nameClass);
-                if (nameClass === 'sub') span.classList.remove('super');
-                if (nameClass === 'super') span.classList.remove('sub');
-            } else if (nameClass) {
-                span.classList.remove(nameClass);
-            }
-
-            if (this.color) span.style.color = this.color;
-            if (this.font) span.style.fontFamily = this.font;
-            anchorNode.textContent = anchorContent.slice(0, anchorOffset);
-            span.textContent = anchorContent.slice(anchorOffset, focusOffset);
-
-            anchorNode.parentElement.after(span);
-
-            const lastSpan = document.createElement('span');
-            if (anchorContent.length > focusOffset) {
-                lastSpan.className = anchorNode.parentElement.className;
-                const color = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('color');
-                const font = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('font-family');
-                if (color) lastSpan.style.color = color;
-                if (font) lastSpan.style.fontFamily = font;
-                lastSpan.textContent = anchorContent.slice(focusOffset);
-                span.after(lastSpan);
-            }
-
-            this.editor.childNodes.forEach((div) => {
-                div.childNodes.forEach((span) => {
-                    if (span.textContent === '') span.remove();
-                })
-            })
+            this.selectedInsideSpan({
+                anchorNode, anchorOffset, focusOffset, nameClass, isAddingClass
+            });
         } else {
             let reverse = null;
             this.editor.childNodes.forEach((div) => {
@@ -285,6 +297,18 @@ class Main extends React.Component {
         }
     }
 
+    toggleSubSuper({ buttons, btn, classes }) {
+        if (btn.value === 'sup') {
+            buttons[4].active = false;
+            const find = classes.findIndex((cl) => cl === 'sub');
+            if (find !== -1) classes.splice(find, 1);
+        } else if (btn.value === 'sub') {
+            buttons[3].active = false;
+            const find = classes.findIndex((cl) => cl === 'super');
+            if (find !== -1) classes.splice(find, 1);
+        }
+    }
+
     clickBtn(value) {
         let { buttons, classes } = this.state;
 
@@ -293,15 +317,7 @@ class Main extends React.Component {
                 btn.active = !btn.active;
                 if (btn.active) {
                     classes.push(btn.className)
-                    if (btn.value === 'sup') {
-                        buttons[4].active = false;
-                        const find = classes.findIndex((cl) => cl === 'sub');
-                        if (find !== -1) classes.splice(find, 1);
-                    } else if (btn.value === 'sub') {
-                        buttons[3].active = false;
-                        const find = classes.findIndex((cl) => cl === 'super');
-                        if (find !== -1) classes.splice(find, 1);
-                    }
+                    this.toggleSubSuper({buttons, btn, classes});
                 } else {
                     const find = classes.findIndex((cl) => cl === btn.className);
                     if (find !== -1) classes.splice(find, 1);
@@ -321,13 +337,7 @@ class Main extends React.Component {
         this.setState({ buttons, classes });
     }
 
-    keyDow(e) {
-        if (this.editor.innerHTML === '' || this.editor.innerHTML === '<br>') this.initContent();
-        const position = this.getCaretPosition();
-        const selected = document.getSelection().toString().length; // это лишнее - оптимизировать условие
-        const { classes } = this.state;
-
-        console.log(this.position);
+    eventEnterKey(e) {
         const { focusNode, focusOffset } = document.getSelection();
         if (e.key === 'Enter' && focusOffset === focusNode.textContent.length) {
             const div = document.createElement('div');
@@ -342,56 +352,62 @@ class Main extends React.Component {
             this.setCursorPosition(span, 1);
             e.preventDefault();
         }
-        console.log(e.key);
+    }
+
+    checkPosition(e) {
+        if (this.editor.innerHTML === '' || this.editor.innerHTML === '<br>') this.initContent();
         if (e.key === 'Backspace' || e.key === 'ArrowLeft') {
             if (this.position === 1) e.preventDefault();
         }
+    }
 
+    checkNewStyle() {
+        let isNewTextStyle = [...this.target.classList].sort().join() !== this.state.classes.sort().join();
+        const color = window.getComputedStyle(this.target, null).getPropertyValue('color');
+        if (color !== this.color) isNewTextStyle = true;
+        let font = window.getComputedStyle(this.target, null).getPropertyValue('font-family');
+        font = font.replace(/"/g, '');
+        if (font !== this.font) isNewTextStyle = true;
+        return isNewTextStyle;
+    }
 
-        if (selected === 0 && e.key.length < 2) {
-            let isNewTextStyle = [...this.target.classList].sort().join() !== classes.sort().join();
-            const color = window.getComputedStyle(this.target, null).getPropertyValue('color');
-            if (color !== this.color) isNewTextStyle = true;
-            let font = window.getComputedStyle(this.target, null).getPropertyValue('font-family');
-            font = font.replace(/"/g, '');
-            if (font !== this.font) isNewTextStyle = true;
+    createNewSpan({ e, position }) {
+        const span = createElement({
+            tag: 'span', className: this.state.classes.join(' '), content: e.key, color: this.color, font: this.font
+        });
 
-            const newSpan = `<span class="${classes.join(' ')}">${e.key}</span>`;
+        const content = this.target.innerHTML;
+
+        this.target.textContent = content.slice(0, position);
+        const contextLastSpan = content.slice(position);
+        this.target.after(span);
+        if (contextLastSpan.length > 0) {
+            const lastSpan = createElement({
+                tag: 'span', className: [...this.target.classList].join(' '), content: contextLastSpan
+            })
+            span.after(lastSpan);
+        }
+        this.target = span;
+    }
+
+    keyDow(e) {
+        const position = this.getCaretPosition();
+        this.checkPosition(e);
+        this.eventEnterKey(e);
+
+        if (e.key.length < 2) {
+            const isNewTextStyle = this.checkNewStyle();
+
             this.position = this.getCursorPosition(this.editor) + 1;
-            if (this.target.tagName !== 'SPAN') {
-                // this.target.innerHTML = newSpan;
-                // this.editor.focus();
-                // this.setCursorPosition(this.editor, this.position);
-                // e.preventDefault();
-            } else if (isNewTextStyle) {
-                const span = document.createElement('span');
-                span.className = classes.join(' ');
-                span.textContent = e.key;
-                const content = this.target.innerHTML;
-                if (this.color) span.style.color = this.color;
-                if (this.font) span.style.fontFamily = this.font;
-
-                this.target.textContent = content.slice(0, position);
-                const contextLastSpan = content.slice(position);
-                this.target.after(span);
-                if (contextLastSpan.length > 0) {
-                    const lastSpan = document.createElement('span');
-                    lastSpan.className = [...this.target.classList].join(' ');
-                    lastSpan.textContent = contextLastSpan;
-                    span.after(lastSpan);
-                }
-
-                this.target = span;
-                this.editor.focus();
-                this.setCursorPosition(this.editor, this.position);
-                e.preventDefault();
+            if (isNewTextStyle) {
+                this.createNewSpan({ e, position });
             } else {
                 const content = this.target.textContent;
                 this.target.textContent = content.slice(0, position) + e.key + content.slice(position);
-                this.editor.focus();
-                this.setCursorPosition(this.editor, this.position);
-                e.preventDefault();
             }
+            this.editor.focus();
+            this.setCursorPosition(this.editor, this.position);
+            e.preventDefault();
         }
     }
 
@@ -548,6 +564,15 @@ class Main extends React.Component {
             </main>
         )
     }
+}
+
+function createElement({ tag, className, content, color, font }) {
+    const elem = document.createElement(tag);
+    if (className) elem.className = className;
+    if (content) elem.textContent = content;
+    if (color) elem.style.color = color;
+    if (font) elem.style.fontFamily = font;
+    return elem;
 }
 
 export default Main;

@@ -25,6 +25,7 @@
         margin-right: 2%;
         padding: 0;
         box-shadow: 2px 2px 3px black;
+        cursor: pointer;
     }
     &__block {
         width: 100%;
@@ -120,6 +121,7 @@
 
     button {
         width: 75px;
+        cursor: pointer;
     }
 }
 
