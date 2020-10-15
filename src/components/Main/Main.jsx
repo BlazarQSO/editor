@@ -95,20 +95,6 @@ class Main extends React.Component {
             });
             this.setState({ buttons, classes });
         }
-
-        this.deselectСontrolButtons();
-    }
-
-    deselectСontrolButtons() {
-        const selectText = document.getSelection().toString();
-        if (selectText.length > 0) {
-            let { buttons } = this.state;
-            buttons = buttons.map((button) => {
-                button.active = false;
-                return button;
-            });
-        }
-        this.setState({ button });
     }
 
     getCursorPosition(parent) {
