@@ -23,6 +23,7 @@ class Main extends React.Component {
         this.getCursorPosition = this.getCursorPosition.bind(this);
         this.setCursorPosition = this.setCursorPosition.bind(this);
         this.findOutCurElement = this.findOutCurElement.bind(this);
+        this.checkClassName = this.checkClassName.bind(this);
     }
 
     componentDidMount() {
@@ -197,6 +198,87 @@ class Main extends React.Component {
         });
     }
 
+    checkReverseSelection({ anchorNode, anchorOffset, focusNode, focusOffset }) {
+        let reverse = null;
+        this.editor.childNodes.forEach((div) => {
+            div.childNodes.forEach((span) => {
+                if (span === focusNode.parentElement && reverse === null) reverse = true;
+                if (span === anchorNode.parentElement && reverse === null) reverse = false;
+            });
+        });
+        if (reverse) {
+            let temp = focusNode;
+            focusNode = anchorNode;
+            anchorNode = temp;
+            temp = focusOffset;
+            focusOffset = anchorOffset;
+            anchorOffset = temp;
+        }
+        return [anchorNode, anchorOffset, focusNode, focusOffset]
+    }
+
+    addStylesToInternalNodes(
+        { nameClass, isAddingClass, focusNode, anchorNode, isChangedColor, isChangedFont
+    }) {
+        const innerNodes = [];
+        let push = false;
+        this.editor.childNodes.forEach((div) => {
+            div.childNodes.forEach((span) => {
+                if (span === focusNode.parentNode) push = false;
+                if (push) innerNodes.push(span);
+                if (span === anchorNode.parentNode) push = true;
+            });
+        });
+
+        innerNodes.forEach((node) => {
+            if (nameClass && isAddingClass) {
+                node.classList.add(nameClass);
+                if (nameClass === 'sub') node.classList.remove('super');
+                if (nameClass === 'super') node.classList.remove('sub');
+            } else if (nameClass) {
+                node.classList.remove(nameClass);
+            }
+            if (isChangedColor) node.style.color = this.color;
+            if (isChangedFont) node.style.fontFamily = this.font;
+        });
+    }
+
+    createLeftSpan({
+        anchorNode, anchorOffset, nameClass, isAddingClass, isChangedColor, isChangedFont
+    }) {
+        const anchorContent = anchorNode.textContent;
+        anchorNode.textContent = anchorContent.slice(0, anchorOffset);
+        const span = createElement({
+            tag: 'span', content: anchorContent.slice(anchorOffset), className: anchorNode.parentElement.className
+        })
+        this.checkClassName({ span, nameClass, isAddingClass });
+
+        span.style.color = (isChangedColor) ?
+            this.color : window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('color');
+        span.style.fontFamily = (isChangedFont) ?
+            this.font : window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('font-family');
+
+        anchorNode.parentElement.after(span);
+    }
+
+    createRightSpan({
+        focusNode, focusOffset, nameClass, isAddingClass, isChangedColor, isChangedFont
+    }) {
+        const focusContent = focusNode.textContent;
+        focusNode.textContent = focusContent.slice(focusOffset);
+        const spanPrevEnd = createElement({
+            tag: 'span', content: focusContent.slice(0, focusOffset), className: focusNode.parentElement.className
+        });
+        this.checkClassName({ span: spanPrevEnd, nameClass, isAddingClass });
+
+        spanPrevEnd.style.color = (isChangedColor) ?
+            this.color : window.getComputedStyle(focusNode.parentElement, null).getPropertyValue('color');
+        spanPrevEnd.style.fontFamily = (isChangedFont) ?
+            this.font : window.getComputedStyle(focusNode.parentElement, null).getPropertyValue('font-family');
+
+        focusNode.parentElement.before(spanPrevEnd);
+    }
+
     addStyleToSelectedText({ nameClass, isAddingClass, isChangedColor, isChangedFont }) {
         let { anchorNode, anchorOffset, focusNode, focusOffset } = document.getSelection();
 
@@ -205,95 +287,21 @@ class Main extends React.Component {
                 anchorNode, anchorOffset, focusOffset, nameClass, isAddingClass
             });
         } else {
-            let reverse = null;
-            this.editor.childNodes.forEach((div) => {
-                div.childNodes.forEach((span) => {
-                    if (span === focusNode.parentElement && reverse === null) reverse = true;
-                    if (span === anchorNode.parentElement && reverse === null) reverse = false;
-                });
-            });
-            if (reverse) {
-                let temp = focusNode;
-                focusNode = anchorNode;
-                anchorNode = temp;
-                temp = focusOffset;
-                focusOffset = anchorOffset;
-                anchorOffset = temp;
-            }
-
-            const innerNodes = [];
-            let push = false;
-            this.editor.childNodes.forEach((div) => {
-                div.childNodes.forEach((span) => {
-                    if (span === focusNode.parentNode) push = false;
-                    if (push) innerNodes.push(span);
-                    if (span === anchorNode.parentNode) push = true;
-                });
+            [anchorNode, anchorOffset, focusNode, focusOffset] = this.checkReverseSelection({
+                anchorNode, anchorOffset, focusNode, focusOffset
             });
 
-            innerNodes.forEach((node) => {
-                if (nameClass && isAddingClass) {
-                    node.classList.add(nameClass);
-                    if (nameClass === 'sub') node.classList.remove('super');
-                    if (nameClass === 'super') node.classList.remove('sub');
-                } else if (nameClass) {
-                    node.classList.remove(nameClass);
-                }
-                if (isChangedColor) node.style.color = this.color;
-                if (isChangedFont) node.style.fontFamily = this.font;
-            })
+            this.addStylesToInternalNodes({
+                nameClass, isAddingClass, focusNode, anchorNode, isChangedColor, isChangedFont
+            });
 
-            const anchorContent = anchorNode.textContent;
-            const span = document.createElement('span');
-            span.className = anchorNode.parentElement.className;
-            if (nameClass && isAddingClass) {
-                span.classList.add(nameClass);
-                if (nameClass === 'sub') span.classList.remove('super');
-                if (nameClass === 'super') span.classList.remove('sub');
-            } else if (nameClass) {
-                span.classList.remove(nameClass);
-            }
+            this.createLeftSpan({
+                anchorNode, anchorOffset, nameClass, isAddingClass, isChangedColor, isChangedFont
+            });
 
-            if (isChangedColor) {
-                if (this.color) span.style.color = this.color;
-            } else {
-                const color = window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('color');
-                if (color) span.style.color = color;
-            }
-            span.style.fontFamily = (isChangedFont) ?
-                this.font : window.getComputedStyle(anchorNode.parentElement, null).getPropertyValue('font-family');
-
-            anchorNode.textContent = anchorContent.slice(0, anchorOffset);
-            span.textContent = anchorContent.slice(anchorOffset);
-
-            anchorNode.parentElement.after(span);
-
-
-
-            const focusContent = focusNode.textContent;
-            const spanPrevEnd = document.createElement('span');
-            spanPrevEnd.className = focusNode.parentElement.className;
-            if (nameClass && isAddingClass) {
-                spanPrevEnd.classList.add(nameClass);
-                if (nameClass === 'sub') spanPrevEnd.classList.remove('super');
-                if (nameClass === 'super') spanPrevEnd.classList.remove('sub');
-            } else if (nameClass) {
-                spanPrevEnd.classList.remove(nameClass);
-            }
-
-            if (isChangedColor) {
-                if (this.color) spanPrevEnd.style.color = this.color;
-            } else {
-                const color = window.getComputedStyle(focusNode.parentElement, null).getPropertyValue('color');
-                if (color) spanPrevEnd.style.color = color;
-            }
-            spanPrevEnd.style.fontFamily = (isChangedFont) ?
-                this.font : window.getComputedStyle(focusNode.parentElement, null).getPropertyValue('font-family');
-
-            focusNode.textContent = focusContent.slice(focusOffset);
-            spanPrevEnd.textContent = focusContent.slice(0, focusOffset);
-
-            focusNode.parentElement.before(spanPrevEnd);
+            this.createRightSpan({
+                focusNode, focusOffset, nameClass, isAddingClass, isChangedColor, isChangedFont
+            });
         }
     }
 
